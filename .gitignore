@@ -1,0 +1,46 @@
+# Build artifacts
+/bin/
+/obj/
+**/bin/
+/**/obj/
+/**/publish/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userprefs
+*.userosscache
+
+# Rider / IntelliJ
+.idea/
+*.sln.iml
+
+# NuGet
+packages/
+.nuget/
+*.nupkg
+
+# VS Code
+.vscode/
+
+# Build outputs / binaries (通常は bin/ で除外されるが追加で)
+*.dll
+*.exe
+*.pdb
+
+# Generated assets
+project.lock.json
+project.assets.json
+
+# Logs, DB, temp
+*.log
+*.sqlite
+*.db
+*.pid
+*.pid.lock
+*.cache
+
+# OS
+.DS_Store
+Thumbs.db

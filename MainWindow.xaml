@@ -1,0 +1,112 @@
+﻿<Window x:Class="random_experimental.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="Random Experimental" Width="1000" Height="640">
+
+    <Window.Resources>
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="FontSize" Value="18"/>
+        </Style>
+
+        <!-- フォント設定 -->
+        <FontFamily x:Key="UiFont">Segoe UI Variable, Inter, "Noto Sans JP", Sans-Serif</FontFamily>
+        <FontFamily x:Key="MonoFont">"JetBrains Mono", "Cascadia Code", Consolas, "Courier New"</FontFamily>
+
+        <!-- フォントサイズを一元管理 -->
+        <sys:Double x:Key="FontSize_Log">20</sys:Double>
+        <sys:Double x:Key="FontSize_Result">20</sys:Double>
+        <sys:Double x:Key="FontSize_Counts">20</sys:Double>
+
+        <Style x:Key="LogTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSize_Log}"/>
+        </Style>
+
+        <Style x:Key="ResultTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSize_Result}"/>
+        </Style>
+
+        <Style x:Key="CountsListViewStyle" TargetType="ListView">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSize_Counts}"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left: Log and Result (stacked) -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="2*"/>
+            </Grid.RowDefinitions>
+
+            <GroupBox Header="Log" Grid.Row="0" Margin="0,0,8,8">
+                <TextBox Style="{StaticResource LogTextBoxStyle}"
+                         Text="{Binding LogText, Mode=OneWay}"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         AcceptsReturn="True"/>
+            </GroupBox>
+
+            <GroupBox Header="Result" Grid.Row="1" Margin="0,0,8,0">
+                <TextBox Style="{StaticResource ResultTextBoxStyle}"
+                         Text="{Binding ResultText, Mode=OneWay}"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         AcceptsReturn="True"/>
+            </GroupBox>
+        </Grid>
+
+        <!-- Right: Controls and counts -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
+                <Button Content="{Binding StartStopButtonText}" Command="{Binding StartStopCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
+                <Button Content="Reset" Command="{Binding ResetCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
+                <!-- Random.Shared トグルをボタン群に追加 -->
+                <CheckBox Content="Random.Shared Enable"
+                          IsChecked="{Binding Settings.UseRandomShared, Mode=TwoWay}"
+                          VerticalAlignment="Center"
+                          Margin="8,0,0,0"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,8">
+                <CheckBox Content="Edit Range" IsChecked="{Binding Settings.IsStartNumberChangeEnabled}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox Width="80" Text="{Binding Settings.StartText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Settings.IsStartNumberChangeEnabled}"/>
+                <TextBlock Text=" - " VerticalAlignment="Center" Margin="4,0"/>
+                <TextBox Width="80" Text="{Binding Settings.EndText, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+
+            <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontWeight="Bold" Margin="0,0,0,8"/>
+
+            <GroupBox Header="Counts" Grid.Row="3">
+                <ListView Style="{StaticResource CountsListViewStyle}" ItemsSource="{Binding Counts}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Number" Width="80" DisplayMemberBinding="{Binding Number}"/>
+                            <GridViewColumn Header="Count" Width="80" DisplayMemberBinding="{Binding Count}"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </GroupBox>
+        </Grid>
+    </Grid>
+</Window>
