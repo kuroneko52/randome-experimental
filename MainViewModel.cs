@@ -11,6 +11,7 @@ namespace random_experimental
         private bool _isRunning;
         private string _statusText = string.Empty;
         private string _resultText = string.Empty;
+        private readonly IDispatcher _dispatcher;
 
         public ICommand StartStopCommand { get; }
         public ICommand ResetCommand { get; }
@@ -29,6 +30,7 @@ namespace random_experimental
 
         public MainViewModel()
         {
+            _dispatcher = new ApplicationDispatcher();
             // Create shared Settings instance and pass into generator so it can read UseRandomShared
             var settings = new SettingsViewModel();
             var generator = new RandomGeneratorService(settings);
@@ -52,20 +54,25 @@ namespace random_experimental
             bool isDesign = System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject());
             if (!isDesign)
             {
-                _generator.NumberGenerated += OnNumberGenerated;
+                // Subscribe with named handler so it can be unsubscribed later.
+                _generator.NumberGenerated += OnNumberGeneratedInternal;
             }
             else
             {
-                // provide sample for designer
-                CountsVM.InitializeRange(Settings.StartValue, Settings.EndValue);
-                LogVM.Append("[Design preview]\n");
-                ResultText = _statistics.ComputeChiSquareSummary(Settings.StartValue, Settings.EndValue, CountsVM.SnapshotCounts());
+                // provide sample for designer (ensure UI-thread execution if available)
+                _dispatcher.Invoke(() =>
+                {
+                    CountsVM.InitializeRange(Settings.StartValue, Settings.EndValue);
+                    LogVM.Append("[Design preview]\n");
+                    ResultText = _statistics.ComputeChiSquareSummary(Settings.StartValue, Settings.EndValue, CountsVM.SnapshotCounts());
+                });
             }
         }
 
         // Legacy constructor kept for tests/mocking
-        public MainViewModel(IRandomGeneratorService generator, IStatisticsService statistics)
+        public MainViewModel(IRandomGeneratorService generator, IStatisticsService statistics, IDispatcher? dispatcher = null)
         {
+            _dispatcher = dispatcher ?? new ApplicationDispatcher();
             Settings = new SettingsViewModel();
             StartStopCommand = new RelayCommand(_ => OnStartStop(null));
             ResetCommand = new RelayCommand(_ => OnReset(null));
@@ -84,14 +91,18 @@ namespace random_experimental
             bool isDesign = System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject());
             if (!isDesign)
             {
-                _generator.NumberGenerated += OnNumberGenerated;
+                // Subscribe with named handler so it can be unsubscribed later.
+                _generator.NumberGenerated += OnNumberGeneratedInternal;
             }
             else
             {
-                // provide sample for designer
-                CountsVM.InitializeRange(Settings.StartValue, Settings.EndValue);
-                LogVM.Append("[Design preview]\n");
-                ResultText = _statistics.ComputeChiSquareSummary(Settings.StartValue, Settings.EndValue, CountsVM.SnapshotCounts());
+                // provide sample for designer (ensure UI-thread execution if available)
+                _dispatcher.Invoke(() =>
+                {
+                    CountsVM.InitializeRange(Settings.StartValue, Settings.EndValue);
+                    LogVM.Append("[Design preview]\n");
+                    ResultText = _statistics.ComputeChiSquareSummary(Settings.StartValue, Settings.EndValue, CountsVM.SnapshotCounts());
+                });
             }
         }
 
@@ -136,7 +147,7 @@ namespace random_experimental
             // Update counts and log, then recompute stats
             CountsVM.Increment(number);
             LogVM.Append($"Random Number: {number}\n");
-            ResultText = StatisticsService.ComputeChiSquareSummary(Settings.StartValue, Settings.EndValue, CountsVM.SnapshotCounts());
+            ResultText = _statistics.ComputeChiSquareSummary(Settings.StartValue, Settings.EndValue, CountsVM.SnapshotCounts());
 
             // Notify that StartStopButtonText may change (Resume vs Pause)
             OnPropertyChanged(nameof(StartStopButtonText));
@@ -151,8 +162,11 @@ namespace random_experimental
                 // initialize counts for the configured range if empty
                 if (CountsVM.Total == 0)
                 {
-                    CountsVM.InitializeRange(Settings.StartValue, Settings.EndValue);
-                    ResultText = _statistics.ComputeChiSquareSummary(Settings.StartValue, Settings.EndValue, CountsVM.SnapshotCounts());
+                    _dispatcher.Invoke(() =>
+                    {
+                        CountsVM.InitializeRange(Settings.StartValue, Settings.EndValue);
+                        ResultText = _statistics.ComputeChiSquareSummary(Settings.StartValue, Settings.EndValue, CountsVM.SnapshotCounts());
+                    });
                 }
 
                 _generator?.Start(Settings.StartValue, Settings.EndValue, 100);
@@ -190,12 +204,18 @@ namespace random_experimental
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        // Named internal handler that ensures OnNumberGenerated runs on UI thread.
+        private void OnNumberGeneratedInternal(int n)
+        {
+            _dispatcher.BeginInvoke(() => OnNumberGenerated(n));
+        }
+
         public void Dispose()
         {
             if (_generator != null)
             {
-                try { _generator.NumberGenerated -= OnNumberGenerated; } catch { }
-                try { _generator.Stop(); } catch { }
+                _generator.NumberGenerated -= OnNumberGeneratedInternal;
+                _generator.Stop();
             }
         }
     }
