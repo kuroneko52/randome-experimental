@@ -33,7 +33,7 @@ namespace random_experimental
             var item = _lookup.GetOrAdd(number, n =>
             {
                 var ci = new CountItemViewModel(n);
-                // Ensure UI collection updated on same thread (caller should be UI thread)
+                // Caller is expected to ensure UI-thread when modifying _counts
                 _counts.Add(ci);
                 return ci;
             });
@@ -43,7 +43,8 @@ namespace random_experimental
         public void Clear()
         {
             _counts.Clear();
-            foreach (var k in _lookup.Keys.ToList()) _lookup.TryRemove(k, out _);
+            var keys = _lookup.Keys.ToArray();
+            foreach (var k in keys) _lookup.TryRemove(k, out _);
         }
 
         public int Total => _lookup.Values.Sum(c => c.Count);
